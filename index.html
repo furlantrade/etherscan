@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Etherscan</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+    input, button { padding: 8px; margin: 4px 0; width: 100%; max-width: 500px; }
+    #resultado { margin-top: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  </style>
+  <script>
+    async function buscarTransacao() {
+      const txHash = document.getElementById("txHash").value;
+      const rpcURL = "https://virtual.mainnet.rpc.tenderly.co/e475666e-cbc4-4596-85b0-2e7c64d26279";
+
+      // Dados da transação
+      const txRes = await fetch(rpcURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getTransactionByHash",
+          params: [txHash],
+          id: 1
+        })
+      });
+      const txData = await txRes.json();
+      const tx = txData.result;
+
+      if (!tx) {
+        document.getElementById("resultado").innerText = "Transação não encontrada.";
+        return;
+      }
+
+      // Receipt (confirmação)
+      const receiptRes = await fetch(rpcURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getTransactionReceipt",
+          params: [txHash],
+          id: 2
+        })
+      });
+      const receiptData = await receiptRes.json();
+      const receipt = receiptData.result;
+
+      const status = receipt ? (receipt.status === "0x1" ? "✅ Confirmada" : "❌ Falhou") : "⏳ Pendente";
+
+      document.getElementById("resultado").innerHTML = `
+        <h3>Status da Transação</h3>
+        <p><strong>Status:</strong> ${status}</p>
+        <p><strong>De:</strong> ${tx.from}</p>
+        <p><strong>Para:</strong> ${tx.to}</p>
+        <p><strong>Valor:</strong> ${parseInt(tx.value, 16) / 1e18} ETH</p>
+        <p><strong>Gas usado:</strong> ${parseInt(tx.gas, 16)}</p>
+        <p><strong>Nonce:</strong> ${tx.nonce}</p>
+        <p><strong>Hash:</strong> ${tx.hash}</p>
+      `;
+    }
+  </script>
+</head>
+<body>
+  <h2>Mini Etherscan - Visualizar Transação</h2>
+  <input type="text" id="txHash" placeholder="Insira o hash da transação" />
+  <button onclick="buscarTransacao()">Buscar Transação</button>
+  <div id="resultado"></div>
+</body>
+</html>
