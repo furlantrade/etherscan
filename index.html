@@ -92,7 +92,7 @@
 </head>
 <body>
   <header>
-    <img src="assets/logo.png" alt="TenderScan Logo" />
+    <img src="logo.png" alt="TenderScan Logo" />
     TenderScan Explorer
   </header>
 
@@ -133,6 +133,24 @@
         });
         const saldoJson = await saldoRaw.json();
         const saldo = parseInt(saldoJson.result, 16) / 1e18;
+        const usdtContract = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT mainnet
+
+        const usdtBalanceRes = await fetch(RPC, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_call",
+            params: [{
+              to: usdtContract,
+              data: "0x70a08231000000000000000000000000" + address.slice(2)
+            }, "latest"],
+            id: 99
+          })
+        });
+        const usdtJson = await usdtBalanceRes.json();
+        const usdtBalance = parseInt(usdtJson.result, 16) / 1e6;
+
 
         let transacoes = [];
 
@@ -171,7 +189,7 @@
           });
         }
 
-        let html = `<p class="saldo">💰 Saldo: ${saldo.toFixed(6)} ETH</p>`;
+        let html = `<p class="saldo">💰 Saldo: ${saldo.toFixed(6)} ETH<br>💵 USDT: ${usdtBalance.toFixed(2)}</p>`;
         if (transacoes.length > 0) {
           html += "<h3>📄 Transações Recentes</h3>";
           transacoes.forEach(tx => {
