@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Explorer RPC | TenderScan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f4f6fa;
+      color: #333;
+    }
+    header {
+      background-color: #0057ff;
+      color: white;
+      padding: 15px 30px;
+      font-size: 20px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+    }
+    header img {
+      height: 32px;
+      margin-right: 10px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #0057ff;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 15px;
+      border-radius: 8px;
+      width: 100%;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0046cc;
+    }
+    .saldo {
+      font-size: 22px;
+      margin: 20px 0;
+      color: #0057ff;
+    }
+    .tx {
+      background: #f0f4ff;
+      border: 1px solid #dbe4ff;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .tx a {
+      color: #0057ff;
+      text-decoration: none;
+    }
+    .tx a:hover {
+      text-decoration: underline;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    .footer {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="TenderScan Logo" />
+    TenderScan Explorer
+  </header>
+
+  <div class="container">
+    <h2>Consulta de Carteira</h2>
+    <input type="text" id="wallet" placeholder="Ex: 0x1234...abcd" />
+    <button onclick="buscar()">Consultar Carteira</button>
+    <div id="resultado"></div>
+  </div>
+
+  <div class="footer">
+    Desenvolvido com ❤️ usando RPC da Tenderly
+  </div>
+
+  <script>
+    const RPC = "https://virtual.mainnet.rpc.tenderly.co/e475666e-cbc4-4596-85b0-2e7c64d26279";
+
+    async function buscar() {
+      const address = document.getElementById("wallet").value.trim().toLowerCase();
+      const resDiv = document.getElementById("resultado");
+      resDiv.innerHTML = "Consultando...";
+
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        resDiv.innerHTML = "<p style='color:red'>Endereço inválido.</p>";
+        return;
+      }
+
+      try {
+        const saldoRaw = await fetch(RPC, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_getBalance",
+            params: [address, "latest"],
+            id: 1
+          })
+        });
+        const saldoJson = await saldoRaw.json();
+        const saldo = parseInt(saldoJson.result, 16) / 1e18;
+        const usdtContract = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT mainnet
+
+        const usdtBalanceRes = await fetch(RPC, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_call",
+            params: [{
+              to: usdtContract,
+              data: "0x70a08231000000000000000000000000" + address.slice(2)
+            }, "latest"],
+            id: 99
+          })
+        });
+        const usdtJson = await usdtBalanceRes.json();
+        const usdtBalance = parseInt(usdtJson.result, 16) / 1e6;
+
+
+        let transacoes = [];
+
+        const blocoAtualRes = await fetch(RPC, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_blockNumber",
+            params: [],
+            id: 2
+          })
+        });
+        const blocoAtual = parseInt((await blocoAtualRes.json()).result, 16);
+
+        for (let i = blocoAtual; i > blocoAtual - 10; i--) {
+          const blocoHex = "0x" + i.toString(16);
+          const blocoRes = await fetch(RPC, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getBlockByNumber",
+              params: [blocoHex, true],
+              id: i
+            })
+          });
+
+          const bloco = await blocoRes.json();
+          if (!bloco.result || !bloco.result.transactions) continue;
+
+          bloco.result.transactions.forEach(tx => {
+            if (tx.from?.toLowerCase() === address || tx.to?.toLowerCase() === address) {
+              transacoes.push(tx);
+            }
+          });
+        }
+
+        let html = `<p class="saldo">💰 Saldo: ${saldo.toFixed(6)} ETH<br>💵 USDT: ${usdtBalance.toFixed(2)}</p>`;
+        if (transacoes.length > 0) {
+          html += "<h3>📄 Transações Recentes</h3>";
+          transacoes.forEach(tx => {
+            html += `
+              <div class="tx">
+                <strong>Hash:</strong> <a href="https://etherscan.io/tx/${tx.hash}" target="_blank">${tx.hash}</a><br>
+                <strong>De:</strong> ${tx.from}<br>
+                <strong>Para:</strong> ${tx.to}<br>
+                <strong>Valor:</strong> ${parseInt(tx.value, 16) / 1e18} ETH
+              </div>
+            `;
+          });
+        } else {
+          html += "<p>Nenhuma transação encontrada nos últimos 10 blocos.</p>";
+        }
+
+        resDiv.innerHTML = html;
+      } catch (e) {
+        console.error(e);
+        resDiv.innerHTML = "<p style='color:red'>Erro ao consultar o endereço.</p>";
+      }
+    }
+  </script>
+</body>
+</html>
