@@ -20,7 +20,7 @@
       padding: 30px;
       max-width: 800px;
       margin: 80px auto;
-      background-color: rgba(255, 255, 255, 0.92);
+      background-color: rgba(255, 255, 255, 0.94);
       border-radius: 16px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
     }
@@ -87,18 +87,22 @@
   <main>
     <h1>Consulta de Carteira</h1>
     <input type="text" id="endereco" placeholder="Insira o endereço da carteira..." />
-    <button onclick="consultar()">Consultar</button>
+    <button id="consultarBtn">Consultar</button>
 
     <div class="resultado" id="resultado"></div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     const provider = new ethers.providers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/e475666e-cbc4-4596-85b0-2e7c64d26279");
-    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-    const usdtABI = ["function balanceOf(address owner) view returns (uint256)", "function decimals() view returns (uint8)"];
 
-    async function consultar() {
+    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    const usdtABI = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function decimals() view returns (uint8)"
+    ];
+
+    document.getElementById("consultarBtn").addEventListener("click", async () => {
       const endereco = document.getElementById("endereco").value.trim();
       const resultado = document.getElementById("resultado");
 
@@ -107,16 +111,16 @@
         return;
       }
 
-      try {
-        resultado.innerHTML = "Consultando...";
+      resultado.innerHTML = "Consultando...";
 
+      try {
         const saldoETH = await provider.getBalance(endereco);
         const ethBalance = ethers.utils.formatEther(saldoETH);
 
         const usdtContract = new ethers.Contract(usdtAddress, usdtABI, provider);
         const usdtRaw = await usdtContract.balanceOf(endereco);
         const usdtDecimals = await usdtContract.decimals();
-        const usdtBalance = Number(usdtRaw) / 10 ** usdtDecimals;
+        const usdtBalance = Number(usdtRaw) / (10 ** usdtDecimals);
 
         resultado.innerHTML = `
           <h3>Endereço: ${endereco}</h3>
@@ -129,7 +133,7 @@
         resultado.innerHTML = "<p style='color:red;'>Erro ao buscar dados. Verifique o endereço ou tente novamente.</p>";
         console.error(erro);
       }
-    }
+    });
   </script>
 </body>
 </html>
