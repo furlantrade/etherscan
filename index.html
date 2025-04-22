@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TenderScan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #2c3e50;
+      padding: 10px 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header img {
+      height: 50px;
+    }
+
+    main {
+      padding: 30px;
+      max-width: 800px;
+      margin: auto;
+      background-color: white;
+      border-radius: 12px;
+      margin-top: 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .resultado {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #ecf0f1;
+      border-radius: 10px;
+    }
+
+    .saldo img {
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="TenderScan Logo" />
+    <h2>TenderScan Explorer</h2>
+  </header>
+
+  <main>
+    <h1>Consulta de Carteira</h1>
+    <input type="text" id="endereco" placeholder="Insira o endereço da carteira..." />
+    <button onclick="consultar()">Consultar</button>
+
+    <div class="resultado" id="resultado"></div>
+  </main>
+
+  <script>
+    const provider = new ethers.providers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/e475666e-cbc4-4596-85b0-2e7c64d26279");
+    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    const usdtABI = ["function balanceOf(address owner) view returns (uint256)", "function decimals() view returns (uint8)"];
+
+    async function consultar() {
+      const endereco = document.getElementById("endereco").value;
+      const resultado = document.getElementById("resultado");
+
+      try {
+        const saldo = await provider.getBalance(endereco);
+        const ethBalance = ethers.utils.formatEther(saldo);
+
+        const usdtContract = new ethers.Contract(usdtAddress, usdtABI, provider);
+        const usdtRaw = await usdtContract.balanceOf(endereco);
+        const usdtDecimals = await usdtContract.decimals();
+        const usdtBalance = Number(usdtRaw) / 10 ** usdtDecimals;
+
+        resultado.innerHTML = `
+          <h3>Endereço: ${endereco}</h3>
+          <p class="saldo">
+            <img src="eth.png" alt="ETH" width="24"> ${ethBalance} ETH<br>
+            <img src="usdt.png" alt="USDT" width="24"> ${usdtBalance.toFixed(2)} USDT
+          </p>
+        `;
+      } catch (err) {
+        resultado.innerHTML = "<p style='color:red;'>Erro ao consultar endereço. Verifique se ele está correto.</p>";
+        console.error(err);
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+</body>
+</html>
