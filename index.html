@@ -77,7 +77,6 @@
       font-weight: bold;
       cursor: pointer;
       border-radius: 0.5rem;
-      margin-right: 0.5rem;
     }
 
     .tx {
@@ -102,7 +101,6 @@
       <label for="token">📦 Custom Token Contract (optional)</label>
       <input type="text" id="token" placeholder="0x..." />
       <button onclick="checkWallet()">Check Wallet</button>
-      <button onclick="downloadCSV()">⬇️ Export CSV</button>
     </div>
     <div class="card" id="result">Enter wallet address and click above.</div>
     <div class="mode-switch">
@@ -120,14 +118,11 @@
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     ];
 
-    let exportRows = [];
-
     async function checkWallet() {
       const address = document.getElementById("wallet").value.trim();
       const tokenAddress = document.getElementById("token").value.trim();
       const result = document.getElementById("result");
       result.innerHTML = "⏳ Loading...";
-      exportRows = [];
 
       if (!ethers.isAddress(address)) {
         result.innerHTML = "<p style='color:var(--danger)'>❌ Invalid address</p>";
@@ -160,9 +155,7 @@
             const block = await provider.getBlockWithTransactions(i);
             for (let tx of block.transactions) {
               if (tx.from.toLowerCase() === address.toLowerCase()) {
-                const ethSent = ethers.formatEther(tx.value);
-                html += `<div class='tx'>🔴 Sent ${ethSent} ETH to ${tx.to}<br><a href='https://etherscan.io/tx/${tx.hash}' target='_blank'>View Tx</a></div>`;
-                exportRows.push(["ETH", ethSent, tx.to, tx.hash]);
+                html += `<div class='tx'>🔴 Sent ${ethers.formatEther(tx.value)} ETH to ${tx.to}<br><a href='https://etherscan.io/tx/${tx.hash}' target='_blank'>View Tx</a></div>`;
                 count++;
                 if (count >= 10) break;
               }
@@ -173,11 +166,12 @@
         html += `<p><strong>🔽 Recent USDT Tx:</strong></p>`;
         const usdtIface = new ethers.Interface(ERC20_ABI);
         const currentBlock = await provider.getBlockNumber();
+        const topic = usdtIface.getEvent("Transfer").topicHash;
         const logs = await provider.getLogs({
           address: USDT_ADDRESS,
           fromBlock: currentBlock - 2000,
           toBlock: currentBlock,
-          topics: [usdtIface.getEventTopic("Transfer"), ethers.zeroPadValue(address.toLowerCase(), 32)]
+          topics: [topic, ethers.zeroPadValue(address.toLowerCase(), 32)]
         });
 
         const usdtTxs = logs.slice(0, 10);
@@ -188,7 +182,6 @@
             const to = parsed.args.to;
             const value = ethers.formatUnits(parsed.args.value, 6);
             html += `<div class='tx'>🔴 Sent ${value} USDT to ${to}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
-            exportRows.push(["USDT", value, to, log.transactionHash]);
           }
         }
 
@@ -196,23 +189,6 @@
       } catch (e) {
         result.innerHTML = `<p style='color:var(--danger)'>❌ Error: ${e.message}</p>`;
       }
-    }
-
-    function downloadCSV() {
-      if (exportRows.length === 0) {
-        alert("No data to export.");
-        return;
-      }
-      const header = ["Token", "Amount", "To", "TxHash"];
-      const csvContent = [header, ...exportRows].map(e => e.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", "wallet_transactions.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
 
     function toggleTheme() {
