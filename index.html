@@ -1,203 +1,223 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ethereum Wallet Viewer</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ethereum Wallet Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
   <style>
     :root {
-      --bg: #ffffff;
-      --text: #1f2937;
-      --card: #f1f5f9;
-      --primary: #6366f1;
-      --tx-bg: #e2e8f0;
-    }
-
-    [data-theme="dark"] {
-      --bg: #0d1117;
-      --text: #e2e8f0;
-      --card: #161b22;
-      --primary: #8b5cf6;
-      --tx-bg: #1f2937;
+      --bg-dark: #0d1117;
+      --bg-light: #f3f4f6;
+      --text-dark: #c9d1d9;
+      --text-light: #111;
+      --card-bg-dark: #161b22;
+      --card-bg-light: #fff;
+      --primary: #4ade80;
+      --danger: #f87171;
+      --muted: #9ca3af;
     }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
       transition: all 0.3s ease;
     }
 
-    h1 {
-      color: var(--primary);
+    [data-theme="light"] {
+      background-color: var(--bg-light);
+      color: var(--text-light);
     }
 
     .container {
-      background: var(--card);
+      max-width: 800px;
+      margin: auto;
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-      max-width: 600px;
-      width: 100%;
     }
 
-    input, button, select {
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--card-bg-dark);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      margin-bottom: 2rem;
+    }
+
+    [data-theme="light"] .card {
+      background: var(--card-bg-light);
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    input {
       width: 100%;
-      padding: 0.75rem;
+      padding: 0.7rem;
       margin-bottom: 1rem;
-      font-size: 1rem;
-      border-radius: 8px;
+      border-radius: 0.5rem;
       border: 1px solid #ccc;
     }
 
     button {
-      background: var(--primary);
-      color: white;
+      padding: 0.8rem 1.5rem;
       border: none;
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
       cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.9;
+      border-radius: 0.5rem;
+      margin-right: 0.5rem;
     }
 
     .tx {
-      background: var(--tx-bg);
+      margin-bottom: 1rem;
       padding: 0.5rem;
-      margin-bottom: 0.5rem;
       border-left: 4px solid var(--primary);
-      border-radius: 6px;
-      font-size: 0.9rem;
+      background-color: rgba(255, 255, 255, 0.03);
     }
 
-    a {
-      color: var(--primary);
-      text-decoration: none;
-    }
-
-    .switch {
-      position: absolute;
-      top: 1rem;
-      right: 2rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--primary);
-    }
-
-    .label {
-      font-weight: 600;
-    }
-
-    .value {
-      font-weight: 400;
+    .mode-switch {
+      text-align: center;
+      margin-top: 1rem;
     }
   </style>
 </head>
-<body data-theme="dark">
-  <div class="switch" onclick="toggleTheme()">🌗 Toggle Theme</div>
-
-  <h1>Ethereum Wallet Dashboard</h1>
-
+<body>
   <div class="container">
-    <input type="text" id="wallet" placeholder="Enter Wallet Address (0x...)" />
-    <input type="text" id="token" placeholder="Optional Token Contract (ERC-20)" />
-    <button onclick="checkWallet()">Check Wallet</button>
-    <div id="result"></div>
+    <h1>Ethereum Wallet Dashboard</h1>
+    <div class="card">
+      <label for="wallet">🔐 Wallet Address</label>
+      <input type="text" id="wallet" placeholder="0x..." />
+      <label for="token">📦 Custom Token Contract (optional)</label>
+      <input type="text" id="token" placeholder="0x..." />
+      <button onclick="checkWallet()">Check Wallet</button>
+      <button onclick="downloadCSV()">⬇️ Export CSV</button>
+    </div>
+    <div class="card" id="result">Enter wallet address and click above.</div>
+    <div class="mode-switch">
+      <button onclick="toggleTheme()">🌗 Toggle Light/Dark Mode</button>
+    </div>
   </div>
 
   <script>
     const provider = new ethers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/1982c95f-1cdd-43dc-a73b-9223e1800cea");
     const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
     const ERC20_ABI = [
-      "function balanceOf(address) view returns (uint256)",
+      "function balanceOf(address) view returns (uint)",
       "function decimals() view returns (uint8)",
-      "function symbol() view returns (string)"
+      "function symbol() view returns (string)",
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
     ];
 
-    function toggleTheme() {
-      const body = document.body;
-      const current = body.getAttribute('data-theme');
-      body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
-    }
+    let exportRows = [];
 
     async function checkWallet() {
       const address = document.getElementById("wallet").value.trim();
       const tokenAddress = document.getElementById("token").value.trim();
       const result = document.getElementById("result");
-      result.innerHTML = "🔄 Loading data...";
+      result.innerHTML = "⏳ Loading...";
+      exportRows = [];
 
       if (!ethers.isAddress(address)) {
-        result.innerHTML = `<p style="color:red;">❌ Invalid wallet address.</p>`;
+        result.innerHTML = "<p style='color:var(--danger)'>❌ Invalid address</p>";
         return;
       }
 
       try {
-        const ethBalance = await provider.getBalance(address);
-        const eth = ethers.formatEther(ethBalance);
-
+        const eth = ethers.formatEther(await provider.getBalance(address));
         const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
-        const usdtBalance = await usdt.balanceOf(address);
-        const usdtDecimals = await usdt.decimals();
-        const usdtFormatted = ethers.formatUnits(usdtBalance, usdtDecimals);
+        const usdtFormatted = ethers.formatUnits(await usdt.balanceOf(address), await usdt.decimals());
 
-        let tokenBalanceHTML = '';
+        let tokenHTML = "";
         if (tokenAddress && ethers.isAddress(tokenAddress)) {
-          const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-          const tokenBal = await token.balanceOf(address);
-          const tokenDecimals = await token.decimals();
-          const symbol = await token.symbol();
-          const tokenFormatted = ethers.formatUnits(tokenBal, tokenDecimals);
-          tokenBalanceHTML = `<p><span class="label">🔹 ${symbol}:</span> <span class="value">${tokenFormatted} ${symbol}</span></p>`;
-        }
-
-        let html = `
-          <p><span class="label">💠 ETH:</span> <span class="value">${eth} ETH</span></p>
-          <p><span class="label">💸 USDT:</span> <span class="value">${usdtFormatted} USDT</span></p>
-          ${tokenBalanceHTML}
-          <p class="label">📜 Recent ETH Transactions:</p>
-        `;
-
-        const currentBlock = await provider.getBlockNumber();
-        let count = 0;
-
-        for (let i = currentBlock; i > currentBlock - 1000 && count < 10; i--) {
-          const block = await provider.getBlockWithTransactions(i);
-          for (const tx of block.transactions) {
-            const from = tx.from.toLowerCase();
-            const to = tx.to?.toLowerCase();
-            const addr = address.toLowerCase();
-            if (from === addr || to === addr) {
-              const direction = to === addr ? "🔵 In" : "🔴 Out";
-              html += `
-                <div class="tx">
-                  <strong>${direction}</strong><br>
-                  Value: ${ethers.formatEther(tx.value)} ETH<br>
-                  From: ${tx.from}<br>
-                  To: ${tx.to}<br>
-                  <a href="https://etherscan.io/tx/${tx.hash}" target="_blank">View on Etherscan</a>
-                </div>
-              `;
-              count++;
-              if (count >= 10) break;
-            }
+          try {
+            const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+            const balance = ethers.formatUnits(await token.balanceOf(address), await token.decimals());
+            const symbol = await token.symbol();
+            tokenHTML = `<p><strong>${symbol}:</strong> ${balance}</p>`;
+          } catch (e) {
+            tokenHTML = `<p style='color:var(--muted)'>⚠️ Couldn't load custom token</p>`;
           }
         }
 
-        if (count === 0) html += "<p>No recent ETH transactions found.</p>";
-        result.innerHTML = html;
+        let html = `<p><strong>ETH:</strong> ${eth}</p><p><strong>USDT:</strong> ${usdtFormatted}</p>${tokenHTML}<p><strong>🔽 Recent ETH Tx:</strong></p>`;
 
+        let count = 0;
+        const blockNum = await provider.getBlockNumber();
+        for (let i = blockNum; i > blockNum - 1000 && count < 10; i--) {
+          try {
+            const block = await provider.getBlockWithTransactions(i);
+            for (let tx of block.transactions) {
+              if (tx.from.toLowerCase() === address.toLowerCase()) {
+                const ethSent = ethers.formatEther(tx.value);
+                html += `<div class='tx'>🔴 Sent ${ethSent} ETH to ${tx.to}<br><a href='https://etherscan.io/tx/${tx.hash}' target='_blank'>View Tx</a></div>`;
+                exportRows.push(["ETH", ethSent, tx.to, tx.hash]);
+                count++;
+                if (count >= 10) break;
+              }
+            }
+          } catch (err) {}
+        }
+
+        html += `<p><strong>🔽 Recent USDT Tx:</strong></p>`;
+        const usdtIface = new ethers.Interface(ERC20_ABI);
+        const currentBlock = await provider.getBlockNumber();
+        const logs = await provider.getLogs({
+          address: USDT_ADDRESS,
+          fromBlock: currentBlock - 2000,
+          toBlock: currentBlock,
+          topics: [usdtIface.getEventTopic("Transfer"), ethers.zeroPadValue(address.toLowerCase(), 32)]
+        });
+
+        const usdtTxs = logs.slice(0, 10);
+        if (usdtTxs.length === 0) html += `<p>No outgoing USDT transactions found.</p>`;
+        else {
+          for (const log of usdtTxs) {
+            const parsed = usdtIface.parseLog(log);
+            const to = parsed.args.to;
+            const value = ethers.formatUnits(parsed.args.value, 6);
+            html += `<div class='tx'>🔴 Sent ${value} USDT to ${to}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
+            exportRows.push(["USDT", value, to, log.transactionHash]);
+          }
+        }
+
+        result.innerHTML = html;
       } catch (e) {
-        console.error(e);
-        result.innerHTML = `<p style="color:red;">❌ Error fetching wallet data.</p>`;
+        result.innerHTML = `<p style='color:var(--danger)'>❌ Error: ${e.message}</p>`;
       }
+    }
+
+    function downloadCSV() {
+      if (exportRows.length === 0) {
+        alert("No data to export.");
+        return;
+      }
+      const header = ["Token", "Amount", "To", "TxHash"];
+      const csvContent = [header, ...exportRows].map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "wallet_transactions.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.setAttribute("data-theme", html.getAttribute("data-theme") === "dark" ? "light" : "dark");
     }
   </script>
 </body>
