@@ -1,368 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TenderScan Explorer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ethereum Wallet Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
-    .gradient-bg {
-      background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    :root {
+      --bg: #ffffff;
+      --text: #1f2937;
+      --card: #f1f5f9;
+      --primary: #6366f1;
+      --tx-bg: #e2e8f0;
     }
-    .token-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      margin-right: 8px;
+
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --text: #e2e8f0;
+      --card: #161b22;
+      --primary: #8b5cf6;
+      --tx-bg: #1f2937;
     }
-    .search-box {
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    .nav-item:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-    .result-card {
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       transition: all 0.3s ease;
     }
-    .result-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    h1 {
+      color: var(--primary);
     }
-    .network-indicator {
-      animation: pulse 2s infinite;
+
+    .container {
+      background: var(--card);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      max-width: 600px;
+      width: 100%;
     }
-    @keyframes pulse {
-      0% { opacity: 0.8; }
-      50% { opacity: 1; }
-      100% { opacity: 0.8; }
+
+    input, button, select {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .tx {
+      background: var(--tx-bg);
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .switch {
+      position: absolute;
+      top: 1rem;
+      right: 2rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--primary);
+    }
+
+    .label {
+      font-weight: 600;
+    }
+
+    .value {
+      font-weight: 400;
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <!-- Header -->
-  <header class="gradient-bg text-white">
-    <div class="container mx-auto px-4 py-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-8">
-          <div class="flex items-center">
-            <i class="fab fa-ethereum text-2xl mr-2"></i>
-            <h1 class="text-xl font-bold">TenderScan</h1>
-          </div>
-          <div class="hidden md:flex space-x-1">
-            <a href="#" class="nav-item px-3 py-2 rounded-md text-sm font-medium"></a>
-            <a href="#" class="nav-item px-3 py-2 rounded-md text-sm font-medium"></a>
-            <a href="#" class="nav-item px-3 py-2 rounded-md text-sm font-medium"></a>
-            <a href="#" class="nav-item px-3 py-2 rounded-md text-sm font-medium"></a>
-            <a href="#" class="nav-item px-3 py-2 rounded-md text-sm font-medium"></a>
-          </div>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center bg-blue-800 px-3 py-1 rounded-full text-xs network-indicator">
-            <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-            <span>Mainnet</span>
-          </div>
-          <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm">
-            <i class="fas fa-wallet mr-2"></i>Connect
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+<body data-theme="dark">
+  <div class="switch" onclick="toggleTheme()">🌗 Toggle Theme</div>
 
-  <!-- Main Content -->
-  <main class="container mx-auto px-4 py-8">
-    <!-- Search Section -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-8 search-box">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Blockchain Explorer</h2>
-      <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-        <div class="flex-1 relative">
-          <input 
-            type="text" 
-            id="endereco" 
-            placeholder="Search by Address / Txn Hash / Block / Token / Domain Name" 
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-          <button 
-            id="consultarBtn"
-            class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md"
-          >
-            <i class="fas fa-search"></i>
-          </button>
-        </div>
-        <button class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg text-gray-700">
-          <i class="fas fa-qrcode"></i>
-        </button>
-      </div>
-    </div>
+  <h1>Ethereum Wallet Dashboard</h1>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-gray-500 text-sm">Latest Block</div>
-        <div class="text-xl font-bold text-blue-600">17,654,321</div>
-        <div class="text-xs text-gray-400">6 secs ago</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-gray-500 text-sm">Transactions</div>
-        <div class="text-xl font-bold text-blue-600">1,234,567</div>
-        <div class="text-xs text-gray-400">~15 TPS</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-gray-500 text-sm">Gas Price</div>
-        <div class="text-xl font-bold text-blue-600">42 Gwei</div>
-        <div class="text-xs text-gray-400">$1.23</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-gray-500 text-sm">ETH Price</div>
-        <div class="text-xl font-bold text-blue-600">$1,832.45</div>
-        <div class="text-xs text-gray-400">+2.4% (24h)</div>
-      </div>
-    </div>
+  <div class="container">
+    <input type="text" id="wallet" placeholder="Enter Wallet Address (0x...)" />
+    <input type="text" id="token" placeholder="Optional Token Contract (ERC-20)" />
+    <button onclick="checkWallet()">Check Wallet</button>
+    <div id="result"></div>
+  </div>
 
-    <!-- Results Section -->
-    <div id="resultado" class="bg-white rounded-lg shadow-lg p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-800">Wallet Information</h3>
-        <div class="flex space-x-2">
-          <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-            <i class="fas fa-download mr-1"></i> CSV
-          </button>
-          <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-            <i class="fas fa-print mr-1"></i> Print
-          </button>
-        </div>
-      </div>
-      
-      <div class="text-center py-12 text-gray-400">
-        <i class="fas fa-wallet text-4xl mb-4"></i>
-        <p>Enter a wallet address to view balance and transactions</p>
-      </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="mt-8">
-      <h3 class="text-lg font-bold text-gray-800 mb-4">Latest Transactions</h3>
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Txn Hash</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Block</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x4a7e...3f2d</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">17,654,321</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x8921...a4c3</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x3f8a...7e2d</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">0.5 ETH</td>
-            </tr>
-            <tr>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x3b2c...9e1f</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">17,654,320</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x1f3a...8d2c</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x7e2d...3f8a</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,200 USDT</td>
-            </tr>
-            <tr>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x7d1e...4f3a</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">17,654,319</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x5e3f...9a2d</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">0x2a4c...7e3f</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2.75 ETH</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
-
-  <!-- Footer -->
-  <footer class="bg-gray-800 text-white py-8">
-    <div class="container mx-auto px-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <h4 class="text-lg font-bold mb-4">TenderScan</h4>
-          <p class="text-gray-400 text-sm">The most advanced blockchain explorer for Ethereum and EVM chains.</p>
-        </div>
-        <div>
-          <h4 class="text-lg font-bold mb-4">Products</h4>
-          <ul class="space-y-2 text-sm text-gray-400">
-            <li><a href="#" class="hover:text-white">Explorer</a></li>
-            <li><a href="#" class="hover:text-white">Developer APIs</a></li>
-            <li><a href="#" class="hover:text-white">Token Analytics</a></li>
-            <li><a href="#" class="hover:text-white">NFT Tracker</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="text-lg font-bold mb-4">Resources</h4>
-          <ul class="space-y-2 text-sm text-gray-400">
-            <li><a href="#" class="hover:text-white">Documentation</a></li>
-            <li><a href="#" class="hover:text-white">Knowledge Base</a></li>
-            <li><a href="#" class="hover:text-white">Blog</a></li>
-            <li><a href="#" class="hover:text-white">Status</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="text-lg font-bold mb-4">Connect</h4>
-          <div class="flex space-x-4">
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-discord"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-github"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-telegram"></i></a>
-          </div>
-        </div>
-      </div>
-      <div class="border-t border-gray-700 mt-8 pt-8 text-sm text-gray-400">
-        <p>© 2023 TenderScan. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
-    const provider = new ethers.providers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/1982c95f-1cdd-43dc-a73b-9223e1800cea");
-    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-    const usdtABI = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function decimals() view returns (uint8)"
+    const provider = new ethers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/1982c95f-1cdd-43dc-a73b-9223e1800cea");
+    const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+    const ERC20_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)"
     ];
 
-    document.getElementById("consultarBtn").addEventListener("click", async () => {
-      const endereco = document.getElementById("endereco").value.trim();
-      const resultado = document.getElementById("resultado");
+    function toggleTheme() {
+      const body = document.body;
+      const current = body.getAttribute('data-theme');
+      body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
 
-      if (!ethers.utils.isAddress(endereco)) {
-        resultado.innerHTML = `
-          <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-500"></i>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-red-700">Invalid Ethereum address. Please check and try again.</p>
-              </div>
-            </div>
-          </div>
-          <div class="text-center py-12 text-gray-400">
-            <i class="fas fa-wallet text-4xl mb-4"></i>
-            <p>Enter a valid wallet address to view balance and transactions</p>
-          </div>
-        `;
+    async function checkWallet() {
+      const address = document.getElementById("wallet").value.trim();
+      const tokenAddress = document.getElementById("token").value.trim();
+      const result = document.getElementById("result");
+      result.innerHTML = "🔄 Loading data...";
+
+      if (!ethers.isAddress(address)) {
+        result.innerHTML = `<p style="color:red;">❌ Invalid wallet address.</p>`;
         return;
       }
 
-      resultado.innerHTML = `
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-xl font-bold text-gray-800">Wallet Information</h3>
-          <div class="flex space-x-2">
-            <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-              <i class="fas fa-download mr-1"></i> CSV
-            </button>
-            <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-              <i class="fas fa-print mr-1"></i> Print
-            </button>
-          </div>
-        </div>
-        <div class="flex items-center justify-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-      `;
-
       try {
-        const saldoETH = await provider.getBalance(endereco);
-        const ethBalance = ethers.utils.formatEther(saldoETH);
+        const ethBalance = await provider.getBalance(address);
+        const eth = ethers.formatEther(ethBalance);
 
-        const usdtContract = new ethers.Contract(usdtAddress, usdtABI, provider);
-        const usdtRaw = await usdtContract.balanceOf(endereco);
-        const usdtDecimals = await usdtContract.decimals();
-        const usdtBalance = Number(usdtRaw) / (10 ** usdtDecimals);
+        const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
+        const usdtBalance = await usdt.balanceOf(address);
+        const usdtDecimals = await usdt.decimals();
+        const usdtFormatted = ethers.formatUnits(usdtBalance, usdtDecimals);
 
-        const formattedAddress = `${endereco.substring(0, 6)}...${endereco.substring(endereco.length - 4)}`;
-        
-        resultado.innerHTML = `
-          <div class="flex justify-between items-center mb-6">
-            <div>
-              <h3 class="text-xl font-bold text-gray-800">Wallet Address</h3>
-              <div class="flex items-center mt-1">
-                <span class="text-blue-600 font-mono">${formattedAddress}</span>
-                <button class="ml-2 text-gray-400 hover:text-gray-600">
-                  <i class="far fa-copy"></i>
-                </button>
-              </div>
-            </div>
-            <div class="flex space-x-2">
-              <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-                <i class="fas fa-download mr-1"></i> CSV
-              </button>
-              <button class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm">
-                <i class="fas fa-print mr-1"></i> Print
-              </button>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm result-card">
-              <div class="flex items-center mb-4">
-                <div class="bg-blue-100 p-2 rounded-full mr-3">
-                  <i class="fab fa-ethereum text-blue-600"></i>
-                </div>
-                <div>
-                  <h4 class="font-bold text-gray-800">Ethereum</h4>
-                  <p class="text-sm text-gray-500">ETH</p>
-                </div>
-              </div>
-              <div class="text-2xl font-bold text-gray-800">${parseFloat(ethBalance).toFixed(4)}</div>
-              <div class="text-sm text-gray-500 mt-2">≈ $${(parseFloat(ethBalance) * 1832.45).toFixed(2)}</div>
-            </div>
-            
-            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm result-card">
-              <div class="flex items-center mb-4">
-                <div class="bg-green-100 p-2 rounded-full mr-3">
-                  <i class="fas fa-dollar-sign text-green-600"></i>
-                </div>
-                <div>
-                  <h4 class="font-bold text-gray-800">Tether USD</h4>
-                  <p class="text-sm text-gray-500">USDT</p>
-                </div>
-              </div>
-              <div class="text-2xl font-bold text-gray-800">${usdtBalance.toFixed(2)}</div>
-              <div class="text-sm text-gray-500 mt-2">≈ $${usdtBalance.toFixed(2)}</div>
-            </div>
-          </div>
-          
-          <div class="mb-6">
-            <h4 class="font-bold text-gray-800 mb-4">Transactions</h4>
-            <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-              <i class="fas fa-info-circle mr-2"></i> No transactions found for this wallet
-            </div>
-          </div>
+        let tokenBalanceHTML = '';
+        if (tokenAddress && ethers.isAddress(tokenAddress)) {
+          const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+          const tokenBal = await token.balanceOf(address);
+          const tokenDecimals = await token.decimals();
+          const symbol = await token.symbol();
+          const tokenFormatted = ethers.formatUnits(tokenBal, tokenDecimals);
+          tokenBalanceHTML = `<p><span class="label">🔹 ${symbol}:</span> <span class="value">${tokenFormatted} ${symbol}</span></p>`;
+        }
+
+        let html = `
+          <p><span class="label">💠 ETH:</span> <span class="value">${eth} ETH</span></p>
+          <p><span class="label">💸 USDT:</span> <span class="value">${usdtFormatted} USDT</span></p>
+          ${tokenBalanceHTML}
+          <p class="label">📜 Recent ETH Transactions:</p>
         `;
-      } catch (erro) {
-        resultado.innerHTML = `
-          <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-500"></i>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-red-700">Error fetching wallet data. Please try again later.</p>
-              </div>
-            </div>
-          </div>
-          <div class="text-center py-12 text-gray-400">
-            <i class="fas fa-wallet text-4xl mb-4"></i>
-            <p>Error loading wallet information</p>
-          </div>
-        `;
-        console.error(erro);
+
+        const currentBlock = await provider.getBlockNumber();
+        let count = 0;
+
+        for (let i = currentBlock; i > currentBlock - 1000 && count < 10; i--) {
+          const block = await provider.getBlockWithTransactions(i);
+          for (const tx of block.transactions) {
+            const from = tx.from.toLowerCase();
+            const to = tx.to?.toLowerCase();
+            const addr = address.toLowerCase();
+            if (from === addr || to === addr) {
+              const direction = to === addr ? "🔵 In" : "🔴 Out";
+              html += `
+                <div class="tx">
+                  <strong>${direction}</strong><br>
+                  Value: ${ethers.formatEther(tx.value)} ETH<br>
+                  From: ${tx.from}<br>
+                  To: ${tx.to}<br>
+                  <a href="https://etherscan.io/tx/${tx.hash}" target="_blank">View on Etherscan</a>
+                </div>
+              `;
+              count++;
+              if (count >= 10) break;
+            }
+          }
+        }
+
+        if (count === 0) html += "<p>No recent ETH transactions found.</p>";
+        result.innerHTML = html;
+
+      } catch (e) {
+        console.error(e);
+        result.innerHTML = `<p style="color:red;">❌ Error fetching wallet data.</p>`;
       }
-    });
+    }
   </script>
 </body>
 </html>
