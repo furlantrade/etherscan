@@ -153,7 +153,7 @@
           } catch (err) {}
         }
 
-        html += `<p><strong>🔽 Recent USDT Transactions:</strong></p>`;
+        html += `<p><strong>🔽 Recent USDT Transactions (Sent):</strong></p>`;
         const usdtIface = new ethers.Interface(ERC20_ABI);
         const currentBlock = await provider.getBlockNumber();
         const logs = await provider.getLogs({
@@ -218,7 +218,14 @@
         return;
       }
 
-      const fileContent = transactionHashes.join("\n");
+      let fileContent = "Sent USDT Transactions:\n";
+      const usdtIface = new ethers.Interface(ERC20_ABI);
+
+      // Add sent transactions
+      for (const hash of transactionHashes) {
+        fileContent += `Sent Transaction Hash: ${hash}\n`;
+      }
+
       const blob = new Blob([fileContent], { type: "text/plain" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
