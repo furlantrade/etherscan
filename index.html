@@ -16,6 +16,7 @@
       --primary: #4ade80;
       --danger: #f87171;
       --muted: #9ca3af;
+      --button-blue: #1D4ED8; /* Azul */
     }
 
     body {
@@ -72,7 +73,7 @@
     button {
       padding: 0.8rem 1.5rem;
       border: none;
-      background-color: var(--primary);
+      background-color: var(--button-blue); /* Azul */
       color: white;
       font-weight: bold;
       cursor: pointer;
@@ -98,8 +99,6 @@
     <div class="card">
       <label for="wallet">🔐 Wallet Address</label>
       <input type="text" id="wallet" placeholder="0x..." />
-      <label for="token">📦 Custom Token Contract (optional)</label>
-      <input type="text" id="token" placeholder="0x..." />
       <button onclick="checkWallet()">Check Wallet</button>
     </div>
     <div class="card" id="result">Enter wallet address and click above.</div>
@@ -120,7 +119,6 @@
 
     async function checkWallet() {
       const address = document.getElementById("wallet").value.trim();
-      const tokenAddress = document.getElementById("token").value.trim();
       const result = document.getElementById("result");
       result.innerHTML = "⏳ Loading...";
 
@@ -134,19 +132,7 @@
         const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
         const usdtFormatted = ethers.formatUnits(await usdt.balanceOf(address), await usdt.decimals());
 
-        let tokenHTML = "";
-        if (tokenAddress && ethers.isAddress(tokenAddress)) {
-          try {
-            const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-            const balance = ethers.formatUnits(await token.balanceOf(address), await token.decimals());
-            const symbol = await token.symbol();
-            tokenHTML = `<p><strong>${symbol}:</strong> ${balance}</p>`;
-          } catch (e) {
-            tokenHTML = `<p style='color:var(--muted)'>⚠️ Couldn't load custom token</p>`;
-          }
-        }
-
-        let html = `<p><strong>ETH:</strong> ${eth}</p><p><strong>USDT:</strong> ${usdtFormatted}</p>${tokenHTML}<p><strong>🔽 Recent ETH Tx:</strong></p>`;
+        let html = `<p><strong>ETH:</strong> ${eth}</p><p><strong>USDT:</strong> ${usdtFormatted}</p><p><strong>🔽 Recent ETH Transactions:</strong></p>`;
 
         let count = 0;
         const blockNum = await provider.getBlockNumber();
@@ -163,25 +149,48 @@
           } catch (err) {}
         }
 
-        html += `<p><strong>🔽 Recent USDT Tx:</strong></p>`;
+        html += `<p><strong>🔽 Recent USDT Transactions:</strong></p>`;
         const usdtIface = new ethers.Interface(ERC20_ABI);
         const currentBlock = await provider.getBlockNumber();
-        const topic = usdtIface.getEvent("Transfer").topicHash;
         const logs = await provider.getLogs({
           address: USDT_ADDRESS,
           fromBlock: currentBlock - 2000,
           toBlock: currentBlock,
-          topics: [topic, ethers.zeroPadValue(address.toLowerCase(), 32)]
+          topics: [
+            usdtIface.getEvent("Transfer").topicHash,
+            ethers.zeroPadValue(address.toLowerCase(), 32)
+          ]
         });
 
         const usdtTxs = logs.slice(0, 10);
-        if (usdtTxs.length === 0) html += `<p>No outgoing USDT transactions found.</p>`;
+        if (usdtTxs.length === 0) html += `<p>No USDT transactions found.</p>`;
         else {
           for (const log of usdtTxs) {
             const parsed = usdtIface.parseLog(log);
             const to = parsed.args.to;
             const value = ethers.formatUnits(parsed.args.value, 6);
             html += `<div class='tx'>🔴 Sent ${value} USDT to ${to}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
+          }
+        }
+
+        // Display received USDT transactions
+        const receivedLogs = await provider.getLogs({
+          address: USDT_ADDRESS,
+          fromBlock: currentBlock - 2000,
+          toBlock: currentBlock,
+          topics: [
+            usdtIface.getEvent("Transfer").topicHash,
+            ethers.zeroPadValue(address.toLowerCase(), 32)
+          ]
+        });
+
+        if (receivedLogs.length === 0) html += `<p>No incoming USDT transactions found.</p>`;
+        else {
+          for (const log of receivedLogs) {
+            const parsed = usdtIface.parseLog(log);
+            const from = parsed.args.from;
+            const value = ethers.formatUnits(parsed.args.value, 6);
+            html += `<div class='tx'>🔵 Received ${value} USDT from ${from}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
           }
         }
 
