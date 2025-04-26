@@ -104,7 +104,6 @@
     <div class="card" id="result">Enter wallet address and click above.</div>
     <div class="mode-switch">
       <button onclick="toggleTheme()">🌗 Toggle Light/Dark Mode</button>
-      <button onclick="downloadHashes()">Download Transaction Hashes</button>
     </div>
   </div>
 
@@ -117,8 +116,6 @@
       "function symbol() view returns (string)",
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     ];
-
-    let transactionHashes = []; // Array to store transaction hashes
 
     async function checkWallet() {
       const address = document.getElementById("wallet").value.trim();
@@ -145,7 +142,6 @@
             for (let tx of block.transactions) {
               if (tx.from.toLowerCase() === address.toLowerCase()) {
                 html += `<div class='tx'>🔴 Sent ${ethers.formatEther(tx.value)} ETH to ${tx.to}<br><a href='https://etherscan.io/tx/${tx.hash}' target='_blank'>View Tx</a></div>`;
-                transactionHashes.push(tx.hash); // Store hash
                 count++;
                 if (count >= 10) break;
               }
@@ -174,7 +170,6 @@
             const to = parsed.args.to;
             const value = ethers.formatUnits(parsed.args.value, 6);
             html += `<div class='tx'>🔴 Sent ${value} USDT to ${to}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
-            transactionHashes.push(log.transactionHash); // Store hash
           }
         }
 
@@ -196,7 +191,6 @@
             const from = parsed.args.from;
             const value = ethers.formatUnits(parsed.args.value, 6);
             html += `<div class='tx'>🔵 Received ${value} USDT from ${from}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
-            transactionHashes.push(log.transactionHash); // Store hash
           }
         }
 
@@ -209,28 +203,6 @@
     function toggleTheme() {
       const html = document.documentElement;
       html.setAttribute("data-theme", html.getAttribute("data-theme") === "dark" ? "light" : "dark");
-    }
-
-    // Function to generate and download the .txt file with transaction hashes
-    function downloadHashes() {
-      if (transactionHashes.length === 0) {
-        alert("No transaction hashes to download.");
-        return;
-      }
-
-      let fileContent = "Sent USDT Transactions:\n";
-      const usdtIface = new ethers.Interface(ERC20_ABI);
-
-      // Add sent transactions
-      for (const hash of transactionHashes) {
-        fileContent += `Sent Transaction Hash: ${hash}\n`;
-      }
-
-      const blob = new Blob([fileContent], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "transaction_hashes.txt";
-      link.click();
     }
   </script>
 </body>
