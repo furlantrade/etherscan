@@ -4,110 +4,211 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ethereum Wallet Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
     :root {
-      --bg-dark: #001f3f;
-      --bg-light: #f3f4f6;
-      --text-dark: #c9d1d9;
-      --text-light: #111;
-      --card-bg-dark: #161b22;
-      --card-bg-light: #fff;
-      --primary: #4ade80;
-      --danger: #f87171;
-      --muted: #9ca3af;
-      --button-blue: #1D4ED8; /* Azul */
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --dark: #1e293b;
+      --light: #f8fafc;
     }
-
+    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
+      font-family: 'Inter', sans-serif;
       transition: all 0.3s ease;
     }
-
+    
+    [data-theme="dark"] {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --input-bg: #334155;
+      --border-color: #334155;
+    }
+    
     [data-theme="light"] {
-      background-color: var(--bg-light);
-      color: var(--text-light);
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-color: #1e293b;
+      --input-bg: #ffffff;
+      --border-color: #e2e8f0;
     }
-
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 2rem;
+    
+    .gradient-text {
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
+    
     .card {
-      background: var(--card-bg-dark);
-      padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-      margin-bottom: 2rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-
-    [data-theme="light"] .card {
-      background: var(--card-bg-light);
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 0.3rem;
+    
+    .tx-sent {
+      border-left: 4px solid var(--danger);
+      background-color: rgba(239, 68, 68, 0.05);
     }
-
-    input {
-      width: 100%;
-      padding: 0.7rem;
-      margin-bottom: 1rem;
-      border-radius: 0.5rem;
-      border: 1px solid #ccc;
+    
+    .tx-received {
+      border-left: 4px solid var(--success);
+      background-color: rgba(16, 185, 129, 0.05);
     }
-
-    button {
-      padding: 0.8rem 1.5rem;
-      border: none;
-      background-color: var(--button-blue); /* Azul */
+    
+    .skeleton {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+    
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .token-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+    }
+    
+    .eth-icon {
+      background-color: #627eea;
       color: white;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 0.5rem;
     }
-
-    .tx {
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      border-left: 4px solid var(--primary);
-      background-color: rgba(255, 255, 255, 0.03);
-    }
-
-    .mode-switch {
-      text-align: center;
-      margin-top: 1rem;
+    
+    .usdt-icon {
+      background-color: #26a17b;
+      color: white;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>Ethereum Wallet Dashboard</h1>
-    <div class="card">
-      <label for="wallet">🔐 Wallet Address</label>
-      <input type="text" id="wallet" placeholder="0x..." />
-      <button onclick="checkWallet()">Check Wallet</button>
+<body class="min-h-screen" style="background-color: var(--bg-color); color: var(--text-color);">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-10">
+      <div>
+        <h1 class="text-3xl font-bold gradient-text">Ethereum Wallet Explorer</h1>
+        <p class="text-sm opacity-75">Track balances and transactions on Ethereum Mainnet</p>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+          <i class="fas fa-moon dark:hidden"></i>
+          <i class="fas fa-sun hidden dark:block"></i>
+        </button>
+        <a href="https://etherscan.io" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors">
+          <i class="fas fa-external-link-alt"></i>
+          <span>Etherscan</span>
+        </a>
+      </div>
+    </header>
+    
+    <!-- Search Card -->
+    <div class="card bg-gradient-to-r from-blue-900/20 to-indigo-900/20 p-6 rounded-xl mb-8 border border-gray-700/50">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fas fa-wallet mr-2"></i>
+        Wallet Address
+      </h2>
+      <div class="flex space-x-4">
+        <div class="flex-1">
+          <div class="relative">
+            <input 
+              type="text" 
+              id="wallet" 
+              placeholder="0x..." 
+              class="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+            >
+            <button 
+              onclick="checkWallet()" 
+              id="search-btn"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center space-x-2 transition-colors"
+            >
+              <i class="fas fa-search"></i>
+              <span>Search</span>
+            </button>
+          </div>
+          <p class="text-sm mt-2 opacity-75">Enter a valid Ethereum wallet address to view balances and transactions</p>
+        </div>
+      </div>
     </div>
-    <div class="card" id="result">Enter wallet address and click above.</div>
-    <div class="mode-switch">
-      <button onclick="toggleTheme()">🌗 Toggle Light/Dark Mode</button>
+    
+    <!-- Results Section -->
+    <div id="result" class="space-y-6">
+      <div class="card p-6 rounded-xl bg-gray-800/50 border border-gray-700/50">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold flex items-center">
+            <i class="fas fa-info-circle mr-2"></i>
+            Wallet Information
+          </h2>
+          <div class="flex items-center space-x-2">
+            <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">Mainnet</span>
+            <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">ETH</span>
+          </div>
+        </div>
+        <p class="text-center py-10 text-gray-400">Enter a wallet address to view details</p>
+      </div>
     </div>
+    
+    <!-- Footer -->
+    <footer class="mt-12 pt-6 border-t border-gray-700/30 text-center text-sm text-gray-400">
+      <div class="flex justify-center space-x-6 mb-4">
+        <a href="#" class="hover:text-blue-400 transition-colors"><i class="fab fa-github"></i> GitHub</a>
+        <a href="#" class="hover:text-blue-400 transition-colors"><i class="fab fa-twitter"></i> Twitter</a>
+        <a href="#" class="hover:text-blue-400 transition-colors"><i class="fas fa-envelope"></i> Contact</a>
+      </div>
+      <p>Ethereum Wallet Explorer - Powered by Ethers.js</p>
+      <p class="mt-1">Data provided by Ethereum Mainnet RPC</p>
+    </footer>
   </div>
 
   <script>
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+    
+    themeToggle.addEventListener('click', () => {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    });
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    html.setAttribute('data-theme', savedTheme);
+    
+    // Ethers.js setup
     const provider = new ethers.JsonRpcProvider("https://virtual.mainnet.rpc.tenderly.co/579971fb-fce2-40b7-93f7-ccfd5ad4a94f");
     const USDT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
     const ERC20_ABI = [
@@ -116,94 +217,310 @@
       "function symbol() view returns (string)",
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     ];
-
+    
+    // Format currency
+    function formatCurrency(value, decimals = 4) {
+      return parseFloat(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: decimals
+      });
+    }
+    
+    // Shorten address
+    function shortenAddress(address, chars = 4) {
+      return `${address.substring(0, chars + 2)}...${address.substring(address.length - chars)}`;
+    }
+    
+    // Loading skeleton
+    function showLoadingSkeleton() {
+      return `
+        <div class="card p-6 rounded-xl bg-gray-800/50 border border-gray-700/50">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold flex items-center">
+              <i class="fas fa-info-circle mr-2"></i>
+              Wallet Information
+            </h2>
+            <div class="flex items-center space-x-2">
+              <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">Mainnet</span>
+              <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">ETH</span>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="skeleton h-6 w-1/2 rounded bg-gray-700"></div>
+            <div class="skeleton h-4 w-3/4 rounded bg-gray-700"></div>
+            <div class="skeleton h-4 w-1/2 rounded bg-gray-700"></div>
+            <div class="skeleton h-4 w-2/3 rounded bg-gray-700"></div>
+          </div>
+          <div class="mt-8 pt-6 border-t border-gray-700/30">
+            <div class="skeleton h-6 w-1/3 rounded bg-gray-700 mb-4"></div>
+            <div class="space-y-3">
+              <div class="skeleton h-16 rounded bg-gray-700"></div>
+              <div class="skeleton h-16 rounded bg-gray-700"></div>
+              <div class="skeleton h-16 rounded bg-gray-700"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Main function to check wallet
     async function checkWallet() {
       const address = document.getElementById("wallet").value.trim();
       const result = document.getElementById("result");
-      result.innerHTML = "⏳ Loading...";
-
+      const searchBtn = document.getElementById("search-btn");
+      
+      // Validate address
       if (!ethers.isAddress(address)) {
-        result.innerHTML = "<p style='color:var(--danger)'>❌ Invalid address</p>";
+        result.innerHTML = `
+          <div class="card p-6 rounded-xl bg-gray-800/50 border border-gray-700/50">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                Invalid Address
+              </h2>
+            </div>
+            <p class="text-center py-6 text-red-400">
+              Please enter a valid Ethereum wallet address starting with 0x...
+            </p>
+          </div>
+        `;
         return;
       }
-
+      
+      // Show loading state
+      searchBtn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> Loading...';
+      searchBtn.disabled = true;
+      result.innerHTML = showLoadingSkeleton();
+      
       try {
-        const eth = ethers.formatEther(await provider.getBalance(address));
-        const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
-        const usdtFormatted = ethers.formatUnits(await usdt.balanceOf(address), await usdt.decimals());
-
-        let html = `<p><strong>ETH:</strong> ${eth}</p><p><strong>USDT:</strong> ${usdtFormatted}</p><p><strong>🔽 Recent ETH Transactions:</strong></p>`;
-
+        // Get balances
+        const [ethBalance, usdtContract, blockNum] = await Promise.all([
+          provider.getBalance(address),
+          new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider),
+          provider.getBlockNumber()
+        ]);
+        
+        const eth = ethers.formatEther(ethBalance);
+        const usdtFormatted = ethers.formatUnits(await usdtContract.balanceOf(address), await usdtContract.decimals());
+        const usdtSymbol = await usdtContract.symbol();
+        
+        // Get ETH transactions
+        let ethTxs = [];
         let count = 0;
-        const blockNum = await provider.getBlockNumber();
-        for (let i = blockNum; i > blockNum - 1000 && count < 10; i--) {
+        
+        for (let i = blockNum; i > blockNum - 1000 && count < 5; i--) {
           try {
             const block = await provider.getBlockWithTransactions(i);
             for (let tx of block.transactions) {
               if (tx.from.toLowerCase() === address.toLowerCase()) {
-                html += `<div class='tx'>🔴 Sent ${ethers.formatEther(tx.value)} ETH to ${tx.to}<br><a href='https://etherscan.io/tx/${tx.hash}' target='_blank'>View Tx</a></div>`;
+                ethTxs.push(tx);
                 count++;
-                if (count >= 10) break;
+                if (count >= 5) break;
               }
             }
-          } catch (err) {}
+          } catch (err) {
+            console.error("Error fetching block:", err);
+          }
         }
-
-        html += `<p><strong>🔽 Recent USDT Transactions (Sent):</strong></p>`;
+        
+        // Get USDT transactions
         const usdtIface = new ethers.Interface(ERC20_ABI);
         const currentBlock = await provider.getBlockNumber();
-        const logs = await provider.getLogs({
-          address: USDT_ADDRESS,
-          fromBlock: currentBlock - 2000,
-          toBlock: currentBlock,
-          topics: [
-            usdtIface.getEvent("Transfer").topicHash,
-            ethers.zeroPadValue(address.toLowerCase(), 32)
-          ]
-        });
-
-        const usdtTxs = logs.slice(0, 10);
-        if (usdtTxs.length === 0) html += `<p>No USDT transactions found.</p>`;
-        else {
-          for (const log of usdtTxs) {
-            const parsed = usdtIface.parseLog(log);
-            const to = parsed.args.to;
-            const value = ethers.formatUnits(parsed.args.value, 6);
-            html += `<div class='tx'>🔴 Sent ${value} USDT to ${to}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
-          }
-        }
-
-        // Display received USDT transactions
-        const receivedLogs = await provider.getLogs({
-          address: USDT_ADDRESS,
-          fromBlock: currentBlock - 2000,
-          toBlock: currentBlock,
-          topics: [
-            usdtIface.getEvent("Transfer").topicHash,
-            ethers.zeroPadValue(address.toLowerCase(), 32)
-          ]
-        });
-
-        if (receivedLogs.length === 0) html += `<p>No incoming USDT transactions found.</p>`;
-        else {
-          for (const log of receivedLogs) {
-            const parsed = usdtIface.parseLog(log);
-            const from = parsed.args.from;
-            const value = ethers.formatUnits(parsed.args.value, 6);
-            html += `<div class='tx'>🔵 Received ${value} USDT from ${from}<br><a href='https://etherscan.io/tx/${log.transactionHash}' target='_blank'>View Tx</a></div>`;
-          }
-        }
-
+        
+        const [sentLogs, receivedLogs] = await Promise.all([
+          provider.getLogs({
+            address: USDT_ADDRESS,
+            fromBlock: currentBlock - 2000,
+            toBlock: currentBlock,
+            topics: [
+              usdtIface.getEvent("Transfer").topicHash,
+              ethers.zeroPadValue(address.toLowerCase(), 32)
+            ]
+          }),
+          provider.getLogs({
+            address: USDT_ADDRESS,
+            fromBlock: currentBlock - 2000,
+            toBlock: currentBlock,
+            topics: [
+              usdtIface.getEvent("Transfer").topicHash,
+              null,
+              ethers.zeroPadValue(address.toLowerCase(), 32)
+            ]
+          })
+        ]);
+        
+        // Parse USDT transactions
+        const parseUsdtTx = (log) => {
+          const parsed = usdtIface.parseLog(log);
+          return {
+            from: parsed.args.from,
+            to: parsed.args.to,
+            value: ethers.formatUnits(parsed.args.value, 6),
+            hash: log.transactionHash,
+            timestamp: log.blockNumber // Would need to fetch block timestamp for actual time
+          };
+        };
+        
+        const sentUsdtTxs = sentLogs.slice(0, 5).map(parseUsdtTx);
+        const receivedUsdtTxs = receivedLogs.slice(0, 5).map(parseUsdtTx);
+        
+        // Build the result HTML
+        let html = `
+          <div class="card p-6 rounded-xl bg-gray-800/50 border border-gray-700/50">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-wallet mr-2"></i>
+                ${shortenAddress(address)}
+              </h2>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">Mainnet</span>
+                <span class="text-sm px-3 py-1 bg-gray-700 rounded-full">ETH</span>
+                <button onclick="copyToClipboard('${address}')" class="text-sm px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-full transition-colors">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div class="bg-gray-700/30 p-4 rounded-lg border border-gray-600/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-gray-400">ETH Balance</span>
+                  <span class="token-icon eth-icon">
+                    <i class="fab fa-ethereum text-xs"></i>
+                  </span>
+                </div>
+                <div class="text-2xl font-bold">${formatCurrency(eth, 6)} ETH</div>
+                <div class="text-sm text-gray-400 mt-1">≈ $${formatCurrency(eth * 3500, 2)}</div>
+              </div>
+              
+              <div class="bg-gray-700/30 p-4 rounded-lg border border-gray-600/50">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-gray-400">${usdtSymbol} Balance</span>
+                  <span class="token-icon usdt-icon">
+                    <i class="fas fa-dollar-sign text-xs"></i>
+                  </span>
+                </div>
+                <div class="text-2xl font-bold">${formatCurrency(usdtFormatted, 2)} ${usdtSymbol}</div>
+                <div class="text-sm text-gray-400 mt-1">≈ $${formatCurrency(usdtFormatted, 2)}</div>
+              </div>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-gray-700/30">
+              <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-exchange-alt mr-2"></i>
+                Recent Transactions
+              </h3>
+              
+              <div class="space-y-4">
+                <div>
+                  <h4 class="font-medium mb-2 text-gray-300">ETH Transactions</h4>
+                  ${ethTxs.length > 0 ? 
+                    ethTxs.map(tx => `
+                      <div class="tx-sent p-3 rounded-lg mb-2">
+                        <div class="flex justify-between items-start">
+                          <div>
+                            <div class="font-medium">Sent ${formatCurrency(ethers.formatEther(tx.value), 6)} ETH</div>
+                            <div class="text-sm text-gray-400">To ${shortenAddress(tx.to)}</div>
+                          </div>
+                          <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                            View <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                          </a>
+                        </div>
+                      </div>
+                    `).join('') : 
+                    '<p class="text-gray-400 text-sm">No recent ETH transactions found</p>'
+                  }
+                </div>
+                
+                <div>
+                  <h4 class="font-medium mb-2 text-gray-300">${usdtSymbol} Transactions (Sent)</h4>
+                  ${sentUsdtTxs.length > 0 ? 
+                    sentUsdtTxs.map(tx => `
+                      <div class="tx-sent p-3 rounded-lg mb-2">
+                        <div class="flex justify-between items-start">
+                          <div>
+                            <div class="font-medium">Sent ${formatCurrency(tx.value, 2)} ${usdtSymbol}</div>
+                            <div class="text-sm text-gray-400">To ${shortenAddress(tx.to)}</div>
+                          </div>
+                          <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                            View <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                          </a>
+                        </div>
+                      </div>
+                    `).join('') : 
+                    '<p class="text-gray-400 text-sm">No recent ${usdtSymbol} transactions found</p>'
+                  }
+                </div>
+                
+                <div>
+                  <h4 class="font-medium mb-2 text-gray-300">${usdtSymbol} Transactions (Received)</h4>
+                  ${receivedUsdtTxs.length > 0 ? 
+                    receivedUsdtTxs.map(tx => `
+                      <div class="tx-received p-3 rounded-lg mb-2">
+                        <div class="flex justify-between items-start">
+                          <div>
+                            <div class="font-medium">Received ${formatCurrency(tx.value, 2)} ${usdtSymbol}</div>
+                            <div class="text-sm text-gray-400">From ${shortenAddress(tx.from)}</div>
+                          </div>
+                          <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                            View <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                          </a>
+                        </div>
+                      </div>
+                    `).join('') : 
+                    '<p class="text-gray-400 text-sm">No recent ${usdtSymbol} transactions found</p>'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
         result.innerHTML = html;
       } catch (e) {
-        result.innerHTML = `<p style='color:var(--danger)'>❌ Error: ${e.message}</p>`;
+        console.error("Error:", e);
+        result.innerHTML = `
+          <div class="card p-6 rounded-xl bg-gray-800/50 border border-gray-700/50">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                Error Loading Data
+              </h2>
+            </div>
+            <p class="text-center py-6 text-red-400">
+              ${e.message || 'Failed to fetch wallet data. Please try again later.'}
+            </p>
+          </div>
+        `;
+      } finally {
+        searchBtn.innerHTML = '<i class="fas fa-search"></i> Search';
+        searchBtn.disabled = false;
       }
     }
-
-    function toggleTheme() {
-      const html = document.documentElement;
-      html.setAttribute("data-theme", html.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    
+    // Copy to clipboard function
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg';
+        tooltip.textContent = 'Copied to clipboard!';
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+          tooltip.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+          setTimeout(() => tooltip.remove(), 300);
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+      });
     }
+    
+    // Handle Enter key in input field
+    document.getElementById('wallet').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        checkWallet();
+      }
+    });
   </script>
 </body>
 </html>
